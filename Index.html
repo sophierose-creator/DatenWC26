@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WC 2026 Fantasy Leaderboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0a1628 0%, #0d2445 50%, #091c38 100%);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #e8edf4;
+    padding-bottom: 48px;
+  }
+
+  header {
+    background: linear-gradient(90deg, #0a3d62 0%, #1565c0 50%, #0a3d62 100%);
+    border-bottom: 3px solid #ffd700;
+    padding: 22px 20px 0;
+    text-align: center;
+  }
+
+  .eyebrow {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: #ffd700;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-size: clamp(22px, 5vw, 28px);
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+
+  #status {
+    font-size: 12px;
+    color: #6888aa;
+    min-height: 20px;
+    margin-bottom: 10px;
+  }
+
+  #status.error { color: #ff9966; }
+  #status.success { color: #7dff6b; }
+
+  #refresh-btn {
+    display: inline-block;
+    margin-bottom: 16px;
+    padding: 8px 22px;
+    background: #ffd700;
+    color: #0a1628;
+    border: none;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  #refresh-btn:disabled { background: #333; color: #666; cursor: default; }
+
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .tab {
+    padding: 10px 16px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    color: #6888aa;
+    transition: all 0.15s;
+  }
+  .tab.active { color: #ffd700; border-bottom-color: #ffd700; }
+
+  .badge {
+    margin-left: 5px;
+    font-size: 11px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 1px 6px;
+  }
+
+  main {
+    max-width: 540px;
+    margin: 0 auto;
+    padding: 20px 12px 0;
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Leaderboard */
+  .player-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .player-card.top { background: linear-gradient(135deg,#1a2f0a,#0f1f06); border-color: #ffd700; }
+  .player-card.open { background: linear-gradient(135deg,#0d2d55,#0a2240); }
+
+  .player-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .rank {
+    width: 32px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #6888aa;
+    flex-shrink: 0;
+  }
+  .rank.medal { font-size: 20px; color: #ffd700; }
+
+  .player-info { flex: 1; min-width: 0; }
+  .player-name { font-weight: 700; font-size: 16px; margin-bottom: 5px; }
+
+  .bar-track {
+    height: 5px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg,#1565c0,#42a5f5);
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+  .bar-fill.top { background: linear-gradient(90deg,#56ab2f,#a8e063); }
+
+  .player-pts {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+    min-width: 36px;
+    text-align: right;
+  }
+  .player-pts.top { color: #7dff6b; }
+
+  .chevron { color: #6888aa; font-size: 12px; flex-shrink: 0; }
+
+  .breakdown {
+    display: none;
+    padding: 0 16px 16px;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .breakdown.open { display: grid; }
+
+  .pot-card {
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .pot-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .pot-team { font-size: 13px; font-weight: 600; }
+  .pot-goals {
+    font-size: 18px;
+    font-weight: 800;
+    color: #445566;
+  }
+  .pot-goals.scored { color: #7dff6b; }
+
+  /* Results */
+  .date-group { margin-bottom: 20px; }
+  .date-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #ffd700;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+
+  .match-row {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .match-team { flex: 1; font-size: 14px; font-weight: 600; }
+  .match-team.home { text-align: right; }
+
+  .match-score {
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    min-width: 54px;
+    text-align: center;
+  }
+
+  .footer-note {
+    text-align: center;
+    font-size: 11px;
+    color: #445566;
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+  .footer-note a { color: #445566; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">⚽ 2026 FIFA World Cup</div>
+  <h1>Fantasy Leaderboard</h1>
+  <div id="status">Loading results…</div>
+  <button id="refresh-btn" onclick="fetchResults(true)" disabled>🔄 Refresh Scores</button>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('leaderboard')">🏆 Leaderboard</button>
+    <button class="tab" id="results-tab" onclick="switchTab('results')">⚽ Results <span class="badge" id="match-count">0</span></button>
+  </div>
+</header>
+
+<main>
+  <div id="leaderboard-panel" class="panel active"></div>
+  <div id="results-panel" class="panel"></div>
+</main>
+
+<script>
+const PLAYERS = {
+  Ang:   { A: "Netherlands", B: "Ecuador",      C: "DR Congo",     D: "Haiti" },
+  Chris: { A: "Portugal",    B: "Senegal",       C: "Egypt",        D: "New Zealand" },
+  Daymo: { A: "Brazil",      B: "Uruguay",       C: "Tunisia",      D: "Uzbekistan" },
+  Des:   { A: "Croatia",     B: "Austria",       C: "Ivory Coast",  D: "Ghana" },
+  Jonno: { A: "Argentina",   B: "South Korea",   C: "Paraguay",     D: "Qatar" },
+  Kat:   { A: "Germany",     B: "Switzerland",   C: "Canada",       D: "Curacao" },
+  Kerry: { A: "France",      B: "Turkiye",       C: "Sweden",       D: "Jordan" },
+  Lee:   { A: "Colombia",    B: "USA",           C: "Panama",       D: "Cape Verde" },
+  Sarah: { A: "Belgium",     B: "Iran",          C: "Algeria",      D: "Bosnia & Herz." },
+  Si:    { A: "Spain",       B: "Mexico",        C: "Scotland",     D: "Saudi Arabia" },
+  Sophie:{ A: "England",     B: "Australia",     C: "Norway",       D: "South Africa" },
+  Tony:  { A: "Morocco",     B: "Japan",         C: "Czechia",      D: "Iraq" },
+};
+
+const ALIASES = {
+  "Bosnia & Herzegovina": "Bosnia & Herz.",
+  "Bosnia and Herzegovina": "Bosnia & Herz.",
+  "Czech Republic": "Czechia",
+  "Turkey": "Turkiye",
+  "Türkiye": "Turkiye",
+  "Curaçao": "Curacao",
+  "United States": "USA",
+  "Cabo Verde": "Cape Verde",
+  "Korea Republic": "South Korea",
+  "IR Iran": "Iran",
+};
+
+const POT_COLORS = { A: "#ffd700", B: "#c0c0c0", C: "#cd7f32", D: "#6eccaf" };
+const POT_BG     = { A: "#2a2200", B: "#1f1f1f", C: "#1d1000", D: "#002a1f" };
+const MEDALS     = ["🥇","🥈","🥉"];
+const API_URL    = "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
+
+let results = [];
+let expanded = null;
+
+function n(name) { return ALIASES[name] || name; }
+
+function fmtDate(iso) {
+  const d = new Date(iso + "T12:00:00Z");
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function computeGoals() {
+  const g = {};
+  for (const r of results) {
+    g[r.home] = (g[r.home] || 0) + r.homeGoals;
+    g[r.away] = (g[r.away] || 0) + r.awayGoals;
+  }
+  return g;
+}
+
+function computeScores(goalMap) {
+  return Object.entries(PLAYERS).map(([name, teams]) => {
+    const pts = Object.values(teams).reduce((s, t) => s + (goalMap[n(t)] || 0), 0);
+    const breakdown = Object.entries(teams).map(([pot, team]) => ({ pot, team, goals: goalMap[n(team)] || 0 }));
+    return { name, pts, breakdown };
+  }).sort((a, b) => b.pts - a.pts || a.name.localeCompare(b.name));
+}
+
+function renderLeaderboard() {
+  const goalMap = computeGoals();
+  const scores  = computeScores(goalMap);
+  const topPts  = scores[0]?.pts || 0;
+  const el = document.getElementById("leaderboard-panel");
+
+  el.innerHTML = scores.map((p, i) => {
+    const pct    = topPts > 0 ? (p.pts / topPts * 100) : 0;
+    const isTied = i > 0 && scores[i-1].pts === p.pts;
+    const rank   = isTied ? scores.findIndex(s => s.pts === p.pts) + 1 : i + 1;
+    const isTop  = i === 0;
+    const isOpen = expanded === p.name;
+
+    const breakdown = p.breakdown.map(({ pot, team, goals }) => `
+      <div class="pot-card" style="background:${POT_BG[pot]};border:1px solid ${POT_COLORS[pot]}33">
+        <div>
+          <span class="pot-label" style="color:${POT_COLORS[pot]}">POT ${pot}</span>
+          <span class="pot-team">${team}</span>
+        </div>
+        <div class="pot-goals ${goals > 0 ? 'scored' : ''}">${goals}</div>
+      </div>`).join("");
+
+    return `
+      <div class="player-card ${isTop ? 'top' : ''} ${isOpen ? 'open' : ''}" onclick="toggle('${p.name}')">
+        <div class="player-row">
+          <div class="rank ${rank <= 3 ? 'medal' : ''}">${rank <= 3 ? MEDALS[rank-1] : rank}</div>
+          <div class="player-info">
+            <div class="player-name">${p.name}</div>
+            <div class="bar-track">
+              <div class="bar-fill ${isTop ? 'top' : ''}" style="width:${pct}%"></div>
+            </div>
+          </div>
+          <div class="player-pts ${isTop ? 'top' : ''}">${p.pts}</div>
+          <div class="chevron">${isOpen ? '▲' : '▼'}</div>
+        </div>
+        <div class="breakdown ${isOpen ? 'open' : ''}">${breakdown}</div>
+      </div>`;
+  }).join("");
+}
+
+function renderResults() {
+  const byDate = {};
+  for (const r of results) {
+    (byDate[r.date] = byDate[r.date] || []).push(r);
+  }
+  const el = document.getElementById("results-panel");
+  el.innerHTML = Object.entries(byDate).map(([date, games]) => `
+    <div class="date-group">
+      <div class="date-label">${date}</div>
+      ${games.map(r => `
+        <div class="match-row">
+          <span class="match-team home">${r.home}</span>
+          <span class="match-score">${r.homeGoals} – ${r.awayGoals}</span>
+          <span class="match-team">${r.away}</span>
+        </div>`).join("")}
+    </div>`).join("") +
+    `<p class="footer-note">${results.length} completed matches · data via <a href="https://github.com/openfootball/worldcup.json" target="_blank">openfootball</a></p>`;
+}
+
+function render() {
+  renderLeaderboard();
+  renderResults();
+  document.getElementById("match-count").textContent = results.length;
+}
+
+function toggle(name) {
+  expanded = expanded === name ? null : name;
+  renderLeaderboard();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll(".tab").forEach((t, i) => {
+    t.classList.toggle("active", ["leaderboard","results"][i] === tab);
+  });
+  document.getElementById("leaderboard-panel").classList.toggle("active", tab === "leaderboard");
+  document.getElementById("results-panel").classList.toggle("active", tab === "results");
+}
+
+function setStatus(msg, type = "") {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className = type;
+}
+
+async function fetchResults(manual = false) {
+  const btn = document.getElementById("refresh-btn");
+  btn.disabled = true;
+  btn.textContent = "Updating…";
+  if (manual) setStatus("Fetching latest results…", "");
+
+  try {
+    const res  = await fetch(API_URL + "?_=" + Date.now());
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+
+    const incoming = data.matches
+      .filter(m => m.score?.ft)
+      .map(m => ({
+        date: fmtDate(m.date),
+        home: n(m.team1),
+        homeGoals: m.score.ft[0],
+        awayGoals: m.score.ft[1],
+        away: n(m.team2),
+      }));
+
+    // Merge: key on date+home+away
+    const keyMap = {};
+    results.forEach(r => { keyMap[`${r.date}|${r.home}|${r.away}`] = r; });
+    let added = 0;
+    incoming.forEach(r => {
+      const k = `${r.date}|${r.home}|${r.away}`;
+      if (!keyMap[k]) added++;
+      keyMap[k] = r;
+    });
+    results = Object.values(keyMap).sort((a, b) =>
+      new Date(a.date + " 2026") - new Date(b.date + " 2026") || a.home.localeCompare(b.home)
+    );
+
+    render();
+    const time = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    const msg  = manual
+      ? (added > 0 ? `Updated ${time} · +${added} new result${added > 1 ? "s" : ""}` : `Updated ${time} · no new results`)
+      : `Last updated ${time} · ${results.length} matches`;
+    setStatus(msg, added > 0 ? "success" : "");
+  } catch (e) {
+    setStatus("Couldn't fetch scores: " + e.message, "error");
+  }
+
+  btn.disabled = false;
+  btn.textContent = "🔄 Refresh Scores";
+}
+
+// Initial load
+fetchResults(false);
+</script>
+</body>
+</html>
