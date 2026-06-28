@@ -336,7 +336,7 @@ async function fetchAll(manual=false){
   btn.disabled=true;btn.textContent="Updating…";
   if(manual)setStatus("Fetching latest data…");
   try{
-    const res=await fetch(API_URL+"?_="+Date.now());
+    const res=await fetch(API_URL, {cache:"no-store"});
     if(!res.ok)throw new Error("HTTP "+res.status);
     const data=await res.json();
 
@@ -359,7 +359,7 @@ async function fetchAll(manual=false){
     const time=new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
     setStatus(manual?(added>0?`Updated ${time} · +${added} new result${added>1?'s':''}`:`Updated ${time} · no new results`):`Last updated ${time} · ${results.length} matches`,added>0?"success":"");
   }catch(e){
-    setStatus("Couldn't fetch — showing cached data","error");
+    setStatus(`Couldn't fetch: ${e.message} — showing cached data`,"error");
     render();
   }
   btn.disabled=false;btn.textContent="🔄 Refresh Scores";
