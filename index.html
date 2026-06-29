@@ -182,6 +182,7 @@ function buildTeamPlayers() {
 }
 
 function calcStandings() {
+  // Build placeholder map from standings (1A, 2A etc)
   const st = {};
   for (const t of Object.keys(GROUP_OF)) st[t]={pts:0,gf:0,ga:0,gd:0,played:0};
   for (const r of results) {
@@ -196,19 +197,25 @@ function calcStandings() {
   const grpTeams={};
   for(const[t,g]of Object.entries(GROUP_OF))(grpTeams[g]=grpTeams[g]||[]).push(t);
   const srt=ts=>[...ts].sort((a,b)=>st[b].pts-st[a].pts||st[b].gd-st[a].gd||st[b].gf-st[a].gf||a.localeCompare(b));
-  const pm={},qualified=new Set(),thirds=[];
+  const pm={};
   for(const g of Object.keys(grpTeams)){
     const sorted=srt(grpTeams[g]);
     if(sorted.every(t=>st[t].played===3)){
       pm["1"+g]=sorted[0];pm["2"+g]=sorted[1];pm["3"+g]=sorted[2];pm["4"+g]=sorted[3];
-      qualified.add(sorted[0]);qualified.add(sorted[1]);
-      thirds.push({team:sorted[2],...st[sorted[2]]});
-    }else sorted.forEach(t=>qualified.add(t));
+    }
   }
-  if(thirds.length===12)
-    [...thirds].sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf).slice(0,8).forEach(t=>qualified.add(t.team));
+
+  // A team is eliminated if they have played a game but appear in NO upcoming fixture
+  const hasPlayed = new Set();
+  for(const r of results){hasPlayed.add(r.home);hasPlayed.add(r.away);}
+  const stillIn = new Set();
+  for(const m of upcoming){stillIn.add(m.home);stillIn.add(m.away);}
   const elim=new Set();
-  for(const t of Object.keys(GROUP_OF))if(!qualified.has(t)&&st[t].played===3)elim.add(t);
+  for(const teams of Object.values(PLAYERS))
+    for(const team of Object.values(teams)){
+      const t=n(team);
+      if(hasPlayed.has(t)&&!stillIn.has(t)) elim.add(t);
+    }
   return{elim,pm};
 }
 
