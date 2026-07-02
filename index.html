@@ -169,6 +169,12 @@ function fmtDate(iso) {
   return mon + " " + day;
 }
 
+const MONTHS = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+function parseDate(str) {
+  const [mon, day] = str.split(" ");
+  return new Date(Date.UTC(2026, MONTHS[mon]-1, parseInt(day)));
+}
+
 function bstTime(timeStr) {
   if (!timeStr) return "";
   const m = timeStr.match(/^(\d+):(\d+)\s+UTC([+-]\d+)$/);
