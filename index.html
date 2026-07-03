@@ -48,9 +48,7 @@
   .rank.medal { font-size: 20px; color: #ffd700; }
   .player-info { flex: 1; min-width: 0; }
   .player-name { font-weight: 700; font-size: 16px; margin-bottom: 5px; }
-  .bar-track { height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
-  .bar-fill { height: 100%; background: linear-gradient(90deg,#1565c0,#42a5f5); border-radius: 3px; transition: width 0.6s ease; }
-  .bar-fill.leader { background: linear-gradient(90deg,#56ab2f,#a8e063); }
+  .player-teams { font-size: 11px; color: #6888aa; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .player-pts { font-size: 22px; font-weight: 800; color: #fff; flex-shrink: 0; min-width: 36px; text-align: right; }
   .player-pts.leader { color: #7dff6b; }
   .chevron { color: #6888aa; font-size: 12px; flex-shrink: 0; }
@@ -320,7 +318,7 @@ function renderLeaderboard(){
           <div class="rank ${rank<=3?'medal':''}">${rank<=3?MEDALS[rank-1]:rank}</div>
           <div class="player-info">
             <div class="player-name">${p.name}</div>
-            <div class="bar-track"><div class="bar-fill ${isTop?'leader':''}" style="width:${pct}%"></div></div>
+            <div class="player-teams">${p.breakdown.filter(b=>!b.out).map(b=>b.team).join(' · ') || '—'}</div>
           </div>
           <div style="text-align:right;flex-shrink:0">
             <div class="player-pts ${isTop?'leader':''}">${p.pts}</div>
